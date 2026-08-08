@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#d9a72f">
+  <title>Central Beer</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span>CENTRAL</span> BEER</div>
+    <button id="adminBtn" class="gold-btn">⚙️ Painel do dono</button>
+  </header>
+
+  <main class="container">
+    <section class="hero">
+      <h1>Central <span>Beer</span></h1>
+      <p>Promoções, eventos e novidades da Central Beer em um só lugar.</p>
+      <div class="quick-links">
+        <a class="gold-btn" href="#promocoes">🔥 Promoções</a>
+        <a class="dark-btn" href="#eventos">🎉 Eventos</a>
+        <a class="dark-btn" target="_blank" rel="noopener" href="https://www.instagram.com/centralbeer.va?igsh=MXBzajlmZzdhdHJ0eA==">📸 Instagram</a>
+        <a class="dark-btn wide" target="_blank" rel="noopener" href="https://chat.whatsapp.com/DU2RWm69NYEAzP2GH9P83F">💬 Comunidade WhatsApp</a>
+        <a class="dark-btn wide" target="_blank" rel="noopener" href="https://share.google/CEr6GQJzhNgHxoPt2">📍 Endereço / localização</a>
+      </div>
+    </section>
+
+    <section id="promocoes" class="section">
+      <h2>🔥 Promoções</h2>
+      <div id="promocoesList" class="cards">
+        <div class="empty">Carregando promoções...</div>
+      </div>
+    </section>
+
+    <section id="eventos" class="section">
+      <h2>🎉 Eventos</h2>
+      <div id="eventosList" class="cards">
+        <div class="empty">Carregando eventos...</div>
+      </div>
+    </section>
+
+    <section class="community">
+      <h2>📱 Entre na comunidade</h2>
+      <p>Receba avisos, promoções e novidades da Central Beer.</p>
+      <div class="community-buttons">
+        <a class="gold-btn" target="_blank" rel="noopener" href="https://chat.whatsapp.com/DU2RWm69NYEAzP2GH9P83F">Entrar na comunidade WhatsApp</a>
+        <a class="dark-btn" target="_blank" rel="noopener" href="https://www.instagram.com/centralbeer.va?igsh=MXBzajlmZzdhdHJ0eA==">Seguir no Instagram</a>
+      </div>
+    </section>
+  </main>
+
+  <footer>Central Beer • Promoções, eventos e novidades</footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="app.js"></script>
+</body>
+</html>
