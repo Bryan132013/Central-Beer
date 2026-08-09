@@ -4,7 +4,7 @@
   2) Execute supabase.sql no SQL Editor.
   3) Cole URL e anon key abaixo.
 */
-const SUPABASE_URL = "https://eihnkocisefxjryavwxv.supabase.co/rest/v1/";
+const SUPABASE_URL = "https://eihnkocisefxjryavwxv.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_QA-SP3Iv0X-v51kxqLJJdg_x1Ak5w0s";
 const ADMIN_EMAIL = "bryanyttcontato@gmail.com";
 
