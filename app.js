@@ -1,6 +1,6 @@
 /*
   Central Beer - versão com Supabase
-  Painel do dono + login automático por sessão
+  Painel do dono + login por e-mail e senha
 */
 
 const SUPABASE_URL = "https://eihnkocisefxjryavwxv.supabase.co";
@@ -150,7 +150,6 @@ async function getOwnerSession() {
 
   if (email !== ADMIN_EMAIL.toLowerCase()) {
     await sb.auth.signOut();
-
     return null;
   }
 
@@ -161,6 +160,7 @@ async function getOwnerSession() {
   Botão do painel do dono.
 */
 $("adminBtn").onclick = async () => {
+
   if (!sb) {
     modal(`
       <button class="close">×</button>
@@ -175,7 +175,6 @@ $("adminBtn").onclick = async () => {
     `);
 
     bindClose();
-
     return;
   }
 
@@ -186,12 +185,11 @@ $("adminBtn").onclick = async () => {
 
   if (session) {
     openAdmin();
-
     return;
   }
 
   /*
-    Se não estiver conectado, mostra o login.
+    Login com e-mail e senha.
   */
   const m = modal(`
     <button class="close">×</button>
@@ -203,8 +201,7 @@ $("adminBtn").onclick = async () => {
       </h2>
 
       <p class="muted">
-        Entre com o e-mail do proprietário para acessar
-        promoções, eventos e dívidas.
+        Entre com o e-mail e a senha do proprietário.
       </p>
 
       <input
@@ -215,8 +212,16 @@ $("adminBtn").onclick = async () => {
         readonly
       >
 
-      <button id="sendLogin" class="gold-btn">
-        Enviar link de acesso
+      <input
+        id="loginPassword"
+        class="field"
+        type="password"
+        placeholder="Digite sua senha"
+        autocomplete="current-password"
+      >
+
+      <button id="loginButton" class="gold-btn">
+        Entrar
       </button>
 
       <p id="loginMsg" class="muted"></p>
@@ -226,48 +231,73 @@ $("adminBtn").onclick = async () => {
 
   bindClose();
 
-  $("sendLogin").onclick = async () => {
+  $("loginButton").onclick = async () => {
 
-    const button = $("sendLogin");
-
+    const button = $("loginButton");
     const message = $("loginMsg");
+    const password = $("loginPassword").value;
+
+    if (!password) {
+      message.textContent = "Digite sua senha.";
+      return;
+    }
 
     button.disabled = true;
+    button.textContent = "Entrando...";
+    message.textContent = "";
 
-    button.textContent = "Enviando...";
-
-    /*
-      IMPORTANTE:
-      O link do e-mail agora sempre volta
-      para o endereço correto do GitHub Pages.
-    */
-    const r = await sb.auth.signInWithOtp({
+    const r = await sb.auth.signInWithPassword({
       email: ADMIN_EMAIL,
-
-      options: {
-        emailRedirectTo: SITE_URL
-      }
+      password: password
     });
 
     if (r.error) {
 
       message.textContent =
-        "Erro: " + r.error.message;
+        "Senha ou login incorreto.";
 
       button.disabled = false;
+      button.textContent = "Entrar";
 
-      button.textContent =
-        "Enviar link de acesso";
+      console.error(r.error);
 
       return;
     }
 
-    message.textContent =
-      "✅ Link enviado! Verifique o e-mail do dono.";
+    /*
+      Confirma que a conta logada
+      realmente é a conta do dono.
+    */
+    const session = await getOwnerSession();
 
-    button.textContent =
-      "Link enviado!";
+    if (!session) {
+
+      message.textContent =
+        "Acesso negado. Esta conta não é a conta do dono.";
+
+      await sb.auth.signOut();
+
+      button.disabled = false;
+      button.textContent = "Entrar";
+
+      return;
+    }
+
+    m.remove();
+
+    openAdmin();
   };
+
+  /*
+    Permite apertar Enter no campo de senha.
+  */
+  $("loginPassword").addEventListener("keydown", (event) => {
+
+    if (event.key === "Enter") {
+      $("loginButton").click();
+    }
+
+  });
 };
 
 /*
@@ -279,7 +309,6 @@ async function openAdmin() {
 
   if (!session) {
     alert("Você não está conectado como dono.");
-
     return;
   }
 
@@ -300,7 +329,6 @@ async function openAdmin() {
       Somente este e-mail pode administrar
       e ver o controle de dívidas.
     </div>
-
 
     <div class="form-section">
 
@@ -344,7 +372,6 @@ async function openAdmin() {
 
     </div>
 
-
     <div class="form-section">
 
       <h3>🎉 Adicionar evento</h3>
@@ -380,7 +407,6 @@ async function openAdmin() {
       ></div>
 
     </div>
-
 
     <div class="form-section">
 
@@ -423,7 +449,6 @@ async function openAdmin() {
 
     </div>
 
-
     <div class="form-section">
 
       <button
@@ -439,7 +464,6 @@ async function openAdmin() {
 
   bindClose();
 
-
   /*
     Sair da conta.
   */
@@ -450,225 +474,158 @@ async function openAdmin() {
     m.remove();
   };
 
-
   /*
     Adicionar promoção.
   */
   $("addPromo").onclick = async () => {
 
-    const nome =
-      $("pNome").value.trim();
+    const nome = $("pNome").value.trim();
 
-    const preco =
-      parseFloat($("pPreco").value);
+    const preco = parseFloat($("pPreco").value);
 
-    const descricao =
-      $("pDesc").value.trim();
-
+    const descricao = $("pDesc").value.trim();
 
     if (!nome) {
-
-      alert(
-        "Digite o nome da promoção."
-      );
-
+      alert("Digite o nome da promoção.");
       return;
     }
 
-
-    const r =
-      await sb
-        .from("promocoes")
-        .insert({
-          nome,
-          preco:
-            Number.isFinite(preco)
-              ? preco
-              : null,
-          descricao
-        });
-
+    const r = await sb
+      .from("promocoes")
+      .insert({
+        nome,
+        preco:
+          Number.isFinite(preco)
+            ? preco
+            : null,
+        descricao
+      });
 
     if (r.error) {
-
-      alert(
-        r.error.message
-      );
-
+      alert(r.error.message);
       return;
     }
 
-
     $("pNome").value = "";
-
     $("pPreco").value = "";
-
     $("pDesc").value = "";
 
-
     await refreshAdmin();
-
     await loadPublic();
   };
-
 
   /*
     Adicionar evento.
   */
   $("addEvent").onclick = async () => {
 
-    const nome =
-      $("eNome").value.trim();
+    const nome = $("eNome").value.trim();
 
-    const data_hora =
-      $("eData").value.trim();
+    const data_hora = $("eData").value.trim();
 
-    const descricao =
-      $("eDesc").value.trim();
-
+    const descricao = $("eDesc").value.trim();
 
     if (!nome) {
-
-      alert(
-        "Digite o nome do evento."
-      );
-
+      alert("Digite o nome do evento.");
       return;
     }
 
-
-    const r =
-      await sb
-        .from("eventos")
-        .insert({
-          nome,
-          data_hora,
-          descricao
-        });
-
+    const r = await sb
+      .from("eventos")
+      .insert({
+        nome,
+        data_hora,
+        descricao
+      });
 
     if (r.error) {
-
-      alert(
-        r.error.message
-      );
-
+      alert(r.error.message);
       return;
     }
 
-
     $("eNome").value = "";
-
     $("eData").value = "";
-
     $("eDesc").value = "";
 
-
     await refreshAdmin();
-
     await loadPublic();
   };
-
 
   /*
     Adicionar dívida.
   */
   $("addDebt").onclick = async () => {
 
-    const nome =
-      $("dNome").value.trim();
+    const nome = $("dNome").value.trim();
 
-    const valor =
-      parseFloat($("dValor").value);
-
+    const valor = parseFloat($("dValor").value);
 
     if (
       !nome ||
       !Number.isFinite(valor)
     ) {
-
-      alert(
-        "Preencha nome e valor."
-      );
-
+      alert("Preencha nome e valor.");
       return;
     }
 
-
-    const r =
-      await sb
-        .from("dividas")
-        .insert({
-          nome,
-          valor,
-          pago: false
-        });
-
+    const r = await sb
+      .from("dividas")
+      .insert({
+        nome,
+        valor,
+        pago: false
+      });
 
     if (r.error) {
-
-      alert(
-        r.error.message
-      );
-
+      alert(r.error.message);
       return;
     }
 
-
     $("dNome").value = "";
-
     $("dValor").value = "";
-
 
     await refreshAdmin();
   };
 
-
   await refreshAdmin();
 }
-
 
 /*
   Atualiza o painel administrativo.
 */
 async function refreshAdmin() {
 
-  const session =
-    await getOwnerSession();
-
+  const session = await getOwnerSession();
 
   if (!session) return;
 
+  const [p, e, d] = await Promise.all([
 
-  const [p, e, d] =
-    await Promise.all([
+    sb
+      .from("promocoes")
+      .select("*")
+      .order(
+        "created_at",
+        { ascending: false }
+      ),
 
-      sb
-        .from("promocoes")
-        .select("*")
-        .order(
-          "created_at",
-          { ascending: false }
-        ),
+    sb
+      .from("eventos")
+      .select("*")
+      .order(
+        "created_at",
+        { ascending: false }
+      ),
 
-      sb
-        .from("eventos")
-        .select("*")
-        .order(
-          "created_at",
-          { ascending: false }
-        ),
+    sb
+      .from("dividas")
+      .select("*")
+      .order(
+        "created_at",
+        { ascending: false }
+      )
 
-      sb
-        .from("dividas")
-        .select("*")
-        .order(
-          "created_at",
-          { ascending: false }
-        )
-
-    ]);
-
+  ]);
 
   /*
     Promoções.
@@ -709,7 +666,6 @@ async function refreshAdmin() {
       .join("") ||
     "<span class='muted'>Nenhuma promoção.</span>";
 
-
   /*
     Eventos.
   */
@@ -747,7 +703,6 @@ async function refreshAdmin() {
       )
       .join("") ||
     "<span class='muted'>Nenhum evento.</span>";
-
 
   /*
     Dívidas.
@@ -812,7 +767,6 @@ async function refreshAdmin() {
     "<span class='muted'>Nenhuma dívida cadastrada.</span>";
 }
 
-
 /*
   Excluir item.
 */
@@ -821,50 +775,34 @@ window.deleteRow = async (
   id
 ) => {
 
-  const session =
-    await getOwnerSession();
+  const session = await getOwnerSession();
 
   if (!session) {
 
-    alert(
-      "Acesso negado."
-    );
+    alert("Acesso negado.");
 
     return;
   }
 
-
-  if (
-    !confirm(
-      "Excluir este item?"
-    )
-  ) {
+  if (!confirm("Excluir este item?")) {
     return;
   }
 
-
-  const r =
-    await sb
-      .from(table)
-      .delete()
-      .eq("id", id);
-
+  const r = await sb
+    .from(table)
+    .delete()
+    .eq("id", id);
 
   if (r.error) {
 
-    alert(
-      r.error.message
-    );
+    alert(r.error.message);
 
     return;
   }
 
-
   await refreshAdmin();
-
   await loadPublic();
 };
-
 
 /*
   Marcar/desmarcar dívida como paga.
@@ -874,43 +812,32 @@ window.toggleDebt = async (
   pago
 ) => {
 
-  const session =
-    await getOwnerSession();
+  const session = await getOwnerSession();
 
   if (!session) {
 
-    alert(
-      "Acesso negado."
-    );
+    alert("Acesso negado.");
 
     return;
   }
 
-
-  const r =
-    await sb
-      .from("dividas")
-      .update({ pago })
-      .eq("id", id);
-
+  const r = await sb
+    .from("dividas")
+    .update({ pago })
+    .eq("id", id);
 
   if (r.error) {
 
-    alert(
-      r.error.message
-    );
+    alert(r.error.message);
 
     return;
   }
-
 
   await refreshAdmin();
 };
 
-
 /*
-  Detecta quando o Supabase
-  confirma o login pelo e-mail.
+  Detecta mudanças de autenticação.
 */
 sb?.auth.onAuthStateChange(
   (event, session) => {
@@ -920,9 +847,9 @@ sb?.auth.onAuthStateChange(
       event,
       session?.user?.email || "sem sessão"
     );
+
   }
 );
-
 
 /*
   Carrega o conteúdo público.
