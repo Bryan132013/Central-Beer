@@ -1,211 +1,253 @@
 /*
-  Central Beer - versão com Supabase
-  Painel do dono + login por e-mail e senha
+  CENTRAL BEER
+  Login do dono: E-mail + Senha
 */
 
 const SUPABASE_URL = "https://eihnkocisefxjryavwxv.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_QA-SP3Iv0X-v51kxqLJJdg_x1Ak5w0s";
+
 const ADMIN_EMAIL = "bryanyttcontato@gmail.com";
 
-const SITE_URL = "https://bryan132013.github.io/Central-Beer/";
-
-const configured =
-  !SUPABASE_URL.includes("COLE_SUA") &&
-  !SUPABASE_ANON_KEY.includes("COLE_SUA");
-
-const sb = configured
-  ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
-  : null;
+const sb = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_ANON_KEY
+);
 
 const $ = (id) => document.getElementById(id);
 
-const money = (v) =>
-  v ? `R$ ${Number(v).toFixed(2).replace(".", ",")}` : "";
-
-function showList(target, items, type) {
-  const el = $(target);
-
-  if (!items.length) {
-    el.innerHTML = `
-      <div class="empty">
-        ${
-          type === "promo"
-            ? "Sem promoções cadastradas"
-            : "Nenhum evento cadastrado"
-        }
-        <br>
-        <span class="muted">Adicione pelo painel do dono.</span>
-      </div>`;
-    return;
-  }
-
-  el.innerHTML = items
-    .map((x) =>
-      type === "promo"
-        ? `
-      <article class="card">
-        <h3>🔥 ${escapeHtml(x.nome)}</h3>
-        ${
-          x.preco != null
-            ? `<div class="price">${money(x.preco)}</div>`
-            : ""
-        }
-        <p>${escapeHtml(x.descricao || "")}</p>
-      </article>`
-        : `
-      <article class="card">
-        <h3>🎉 ${escapeHtml(x.nome)}</h3>
-        <div class="date">📅 ${escapeHtml(x.data_hora || "")}</div>
-        <p>${escapeHtml(x.descricao || "")}</p>
-      </article>`
-    )
-    .join("");
+function money(value) {
+  if (value == null) return "";
+  return `R$ ${Number(value).toFixed(2).replace(".", ",")}`;
 }
 
-function escapeHtml(s) {
-  return String(s).replace(/[&<>"']/g, (m) => ({
+function escapeHtml(text) {
+  return String(text).replace(/[&<>"']/g, (char) => ({
     "&": "&amp;",
     "<": "&lt;",
     ">": "&gt;",
     '"': "&quot;",
     "'": "&#039;"
-  }[m]));
+  }[char]));
 }
+
+
+/* =========================
+   CONTEÚDO PÚBLICO
+========================= */
 
 async function loadPublic() {
-  if (!sb) {
-    showList("promocoesList", [], "promo");
-    showList("eventosList", [], "event");
-    return;
-  }
 
-  const [p, e] = await Promise.all([
-    sb
+  const { data: promocoes, error: promoError } =
+    await sb
       .from("promocoes")
       .select("*")
-      .order("created_at", { ascending: false }),
+      .order("created_at", {
+        ascending: false
+      });
 
-    sb
+  const { data: eventos, error: eventoError } =
+    await sb
       .from("eventos")
       .select("*")
-      .order("created_at", { ascending: false })
-  ]);
+      .order("created_at", {
+        ascending: false
+      });
 
-  if (p.error || e.error) {
-    console.error(p.error || e.error);
+  if (promoError) {
+    console.error(promoError);
+  }
+
+  if (eventoError) {
+    console.error(eventoError);
+  }
+
+  showPromocoes(promocoes || []);
+  showEventos(eventos || []);
+}
+
+
+/* =========================
+   PROMOÇÕES
+========================= */
+
+function showPromocoes(items) {
+
+  const element = $("promocoesList");
+
+  if (!element) return;
+
+  if (!items.length) {
+
+    element.innerHTML = `
+      <div class="empty">
+        Sem promoções cadastradas
+        <br>
+        <span class="muted">
+          Adicione pelo painel do dono.
+        </span>
+      </div>
+    `;
+
     return;
   }
 
-  showList("promocoesList", p.data || [], "promo");
-  showList("eventosList", e.data || [], "event");
+  element.innerHTML = items.map(item => `
+
+    <article class="card">
+
+      <h3>
+        🔥 ${escapeHtml(item.nome)}
+      </h3>
+
+      ${
+        item.preco != null
+          ? `<div class="price">
+              ${money(item.preco)}
+             </div>`
+          : ""
+      }
+
+      <p>
+        ${escapeHtml(item.descricao || "")}
+      </p>
+
+    </article>
+
+  `).join("");
 }
 
-function modal(html) {
-  const old = document.querySelector(".modal");
 
-  if (old) old.remove();
+/* =========================
+   EVENTOS
+========================= */
 
-  const m = document.createElement("div");
+function showEventos(items) {
 
-  m.className = "modal";
+  const element = $("eventosList");
 
-  m.innerHTML = `
+  if (!element) return;
+
+  if (!items.length) {
+
+    element.innerHTML = `
+      <div class="empty">
+        Nenhum evento cadastrado
+        <br>
+        <span class="muted">
+          Adicione pelo painel do dono.
+        </span>
+      </div>
+    `;
+
+    return;
+  }
+
+  element.innerHTML = items.map(item => `
+
+    <article class="card">
+
+      <h3>
+        🎉 ${escapeHtml(item.nome)}
+      </h3>
+
+      <div class="date">
+        📅 ${escapeHtml(item.data_hora || "")}
+      </div>
+
+      <p>
+        ${escapeHtml(item.descricao || "")}
+      </p>
+
+    </article>
+
+  `).join("");
+}
+
+
+/* =========================
+   MODAL
+========================= */
+
+function openModal(content) {
+
+  document.querySelector(".central-modal")?.remove();
+
+  const modal = document.createElement("div");
+
+  modal.className = "central-modal";
+
+  modal.innerHTML = `
     <div class="modal-box">
-      ${html}
+      ${content}
     </div>
   `;
 
-  document.body.appendChild(m);
+  document.body.appendChild(modal);
 
-  return m;
+  modal.querySelector(".close")?.addEventListener("click", () => {
+    modal.remove();
+  });
+
+  return modal;
 }
 
-function bindClose() {
-  document
-    .querySelector(".close")
-    ?.addEventListener("click", () => {
-      document.querySelector(".modal")?.remove();
-    });
-}
 
-/*
-  Verifica se existe uma sessão do dono.
-*/
-async function getOwnerSession() {
-  if (!sb) return null;
+/* =========================
+   VERIFICAR DONO
+========================= */
+
+async function getOwner() {
 
   const {
-    data: { session },
-    error
+    data: {
+      session
+    }
   } = await sb.auth.getSession();
 
-  if (error) {
-    console.error(error);
+  if (!session) {
     return null;
   }
 
-  if (!session) return null;
+  const email =
+    (session.user.email || "").toLowerCase();
 
-  const email = (session.user.email || "").toLowerCase();
+  if (
+    email !== ADMIN_EMAIL.toLowerCase()
+  ) {
 
-  if (email !== ADMIN_EMAIL.toLowerCase()) {
     await sb.auth.signOut();
+
     return null;
   }
 
   return session;
 }
 
-/*
-  Botão do painel do dono.
-*/
-$("adminBtn").onclick = async () => {
 
-  if (!sb) {
-    modal(`
-      <button class="close">×</button>
+/* =========================
+   LOGIN
+========================= */
+
+async function openLogin() {
+
+  const modal = openModal(`
+
+    <button class="close">
+      ×
+    </button>
+
+    <div class="login">
 
       <h2 class="admin-title">
         ⚙️ Painel do dono
       </h2>
 
-      <div class="notice">
-        O site ainda não está conectado ao Supabase.
-      </div>
-    `);
-
-    bindClose();
-    return;
-  }
-
-  /*
-    Primeiro verifica se o dono já está conectado.
-  */
-  const session = await getOwnerSession();
-
-  if (session) {
-    openAdmin();
-    return;
-  }
-
-  /*
-    Login com e-mail e senha.
-  */
-  const m = modal(`
-    <button class="close">×</button>
-
-    <div class="login">
-
-      <h2 class="admin-title">
-        ⚙️ Acesso do dono
-      </h2>
-
       <p class="muted">
-        Entre com o e-mail e a senha do proprietário.
+        Entre com sua conta de administrador.
       </p>
 
       <input
-        id="loginEmail"
+        id="adminEmail"
         class="field"
         type="email"
         value="${ADMIN_EMAIL}"
@@ -213,126 +255,194 @@ $("adminBtn").onclick = async () => {
       >
 
       <input
-        id="loginPassword"
+        id="adminPassword"
         class="field"
         type="password"
-        placeholder="Digite sua senha"
+        placeholder="Senha"
         autocomplete="current-password"
       >
 
-      <button id="loginButton" class="gold-btn">
+      <button
+        id="adminLogin"
+        class="gold-btn"
+      >
         Entrar
       </button>
 
-      <p id="loginMsg" class="muted"></p>
+      <p
+        id="adminMessage"
+        class="muted"
+      ></p>
 
     </div>
+
   `);
 
-  bindClose();
+  $("adminLogin").onclick =
+    async function () {
 
-  $("loginButton").onclick = async () => {
+      const button =
+        $("adminLogin");
 
-    const button = $("loginButton");
-    const message = $("loginMsg");
-    const password = $("loginPassword").value;
+      const message =
+        $("adminMessage");
 
-    if (!password) {
-      message.textContent = "Digite sua senha.";
-      return;
+      const password =
+        $("adminPassword").value;
+
+      if (!password) {
+
+        message.textContent =
+          "Digite sua senha.";
+
+        return;
+      }
+
+      button.disabled = true;
+
+      button.textContent =
+        "Entrando...";
+
+      const result =
+        await sb.auth.signInWithPassword({
+
+          email: ADMIN_EMAIL,
+
+          password: password
+
+        });
+
+      if (result.error) {
+
+        console.error(result.error);
+
+        message.textContent =
+          "Senha incorreta ou conta não encontrada.";
+
+        button.disabled = false;
+
+        button.textContent =
+          "Entrar";
+
+        return;
+      }
+
+      const owner =
+        await getOwner();
+
+      if (!owner) {
+
+        message.textContent =
+          "Esta conta não possui acesso ao painel.";
+
+        await sb.auth.signOut();
+
+        button.disabled = false;
+
+        button.textContent =
+          "Entrar";
+
+        return;
+      }
+
+      modal.remove();
+
+      openAdmin();
+    };
+
+
+  $("adminPassword").addEventListener(
+    "keydown",
+    event => {
+
+      if (event.key === "Enter") {
+
+        $("adminLogin").click();
+
+      }
+
     }
+  );
+}
 
-    button.disabled = true;
-    button.textContent = "Entrando...";
-    message.textContent = "";
 
-    const r = await sb.auth.signInWithPassword({
-      email: ADMIN_EMAIL,
-      password: password
-    });
+/* =========================
+   BOTÃO DO PAINEL
+========================= */
 
-    if (r.error) {
+const adminButton =
+  $("adminBtn");
 
-      message.textContent =
-        "Senha ou login incorreto.";
+if (adminButton) {
 
-      button.disabled = false;
-      button.textContent = "Entrar";
+  adminButton.onclick =
+    async () => {
 
-      console.error(r.error);
+      const owner =
+        await getOwner();
 
-      return;
-    }
+      if (owner) {
 
-    /*
-      Confirma que a conta logada
-      realmente é a conta do dono.
-    */
-    const session = await getOwnerSession();
+        openAdmin();
 
-    if (!session) {
+      } else {
 
-      message.textContent =
-        "Acesso negado. Esta conta não é a conta do dono.";
+        openLogin();
 
-      await sb.auth.signOut();
+      }
 
-      button.disabled = false;
-      button.textContent = "Entrar";
+    };
 
-      return;
-    }
+}
 
-    m.remove();
 
-    openAdmin();
-  };
+/* =========================
+   PAINEL ADMINISTRATIVO
+========================= */
 
-  /*
-    Permite apertar Enter no campo de senha.
-  */
-  $("loginPassword").addEventListener("keydown", (event) => {
-
-    if (event.key === "Enter") {
-      $("loginButton").click();
-    }
-
-  });
-};
-
-/*
-  Abre o painel administrativo.
-*/
 async function openAdmin() {
 
-  const session = await getOwnerSession();
+  const owner =
+    await getOwner();
 
-  if (!session) {
-    alert("Você não está conectado como dono.");
+  if (!owner) {
+
+    alert(
+      "Acesso negado."
+    );
+
     return;
   }
 
-  const m = modal(`
+  const modal =
+    openModal(`
 
-    <button class="close">×</button>
+    <button class="close">
+      ×
+    </button>
 
     <h2 class="admin-title">
       ⚙️ Painel do dono
     </h2>
 
     <div class="notice">
-      Logado como
-      <b>${ADMIN_EMAIL}</b>.
 
-      <br>
+      Logado como:
 
-      Somente este e-mail pode administrar
-      e ver o controle de dívidas.
+      <b>
+        ${ADMIN_EMAIL}
+      </b>
+
     </div>
+
+
+    <!-- PROMOÇÕES -->
 
     <div class="form-section">
 
-      <h3>🔥 Adicionar promoção</h3>
+      <h3>
+        🔥 Adicionar promoção
+      </h3>
 
       <input
         id="pNome"
@@ -340,17 +450,13 @@ async function openAdmin() {
         placeholder="Nome da promoção"
       >
 
-      <div class="row">
-
-        <input
-          id="pPreco"
-          class="field"
-          type="number"
-          step="0.01"
-          placeholder="Preço (ex.: 9,90)"
-        >
-
-      </div>
+      <input
+        id="pPreco"
+        class="field"
+        type="number"
+        step="0.01"
+        placeholder="Preço"
+      >
 
       <textarea
         id="pDesc"
@@ -372,9 +478,14 @@ async function openAdmin() {
 
     </div>
 
+
+    <!-- EVENTOS -->
+
     <div class="form-section">
 
-      <h3>🎉 Adicionar evento</h3>
+      <h3>
+        🎉 Adicionar evento
+      </h3>
 
       <input
         id="eNome"
@@ -391,7 +502,7 @@ async function openAdmin() {
       <textarea
         id="eDesc"
         class="field textarea"
-        placeholder="Descrição do evento"
+        placeholder="Descrição"
       ></textarea>
 
       <button
@@ -408,32 +519,32 @@ async function openAdmin() {
 
     </div>
 
+
+    <!-- DÍVIDAS -->
+
     <div class="form-section">
 
-      <h3>💰 Controle de dívidas</h3>
+      <h3>
+        💰 Controle de dívidas
+      </h3>
 
       <p class="muted">
-        Privado: esta área só aparece para
-        o e-mail do dono.
+        Somente o dono pode visualizar.
       </p>
 
-      <div class="row">
+      <input
+        id="dNome"
+        class="field"
+        placeholder="Nome da pessoa"
+      >
 
-        <input
-          id="dNome"
-          class="field"
-          placeholder="Nome da pessoa"
-        >
-
-        <input
-          id="dValor"
-          class="field"
-          type="number"
-          step="0.01"
-          placeholder="Valor (ex.: 35,00)"
-        >
-
-      </div>
+      <input
+        id="dValor"
+        class="field"
+        type="number"
+        step="0.01"
+        placeholder="Valor"
+      >
 
       <button
         id="addDebt"
@@ -449,6 +560,9 @@ async function openAdmin() {
 
     </div>
 
+
+    <!-- SAIR -->
+
     <div class="form-section">
 
       <button
@@ -462,189 +576,278 @@ async function openAdmin() {
 
   `);
 
-  bindClose();
 
-  /*
-    Sair da conta.
-  */
-  $("logout").onclick = async () => {
+  /* SAIR */
 
-    await sb.auth.signOut();
+  $("logout").onclick =
+    async () => {
 
-    m.remove();
-  };
+      await sb.auth.signOut();
 
-  /*
-    Adicionar promoção.
-  */
-  $("addPromo").onclick = async () => {
+      modal.remove();
 
-    const nome = $("pNome").value.trim();
+    };
 
-    const preco = parseFloat($("pPreco").value);
 
-    const descricao = $("pDesc").value.trim();
+  /* ADICIONAR PROMOÇÃO */
 
-    if (!nome) {
-      alert("Digite o nome da promoção.");
-      return;
-    }
+  $("addPromo").onclick =
+    async () => {
 
-    const r = await sb
-      .from("promocoes")
-      .insert({
-        nome,
-        preco:
-          Number.isFinite(preco)
-            ? preco
-            : null,
-        descricao
-      });
+      const nome =
+        $("pNome").value.trim();
 
-    if (r.error) {
-      alert(r.error.message);
-      return;
-    }
+      const preco =
+        parseFloat(
+          $("pPreco").value
+        );
 
-    $("pNome").value = "";
-    $("pPreco").value = "";
-    $("pDesc").value = "";
+      const descricao =
+        $("pDesc").value.trim();
 
-    await refreshAdmin();
-    await loadPublic();
-  };
+      if (!nome) {
 
-  /*
-    Adicionar evento.
-  */
-  $("addEvent").onclick = async () => {
+        alert(
+          "Digite o nome da promoção."
+        );
 
-    const nome = $("eNome").value.trim();
+        return;
+      }
 
-    const data_hora = $("eData").value.trim();
+      const result =
+        await sb
+          .from("promocoes")
+          .insert({
 
-    const descricao = $("eDesc").value.trim();
+            nome: nome,
 
-    if (!nome) {
-      alert("Digite o nome do evento.");
-      return;
-    }
+            preco:
+              Number.isFinite(preco)
+                ? preco
+                : null,
 
-    const r = await sb
-      .from("eventos")
-      .insert({
-        nome,
-        data_hora,
-        descricao
-      });
+            descricao:
+              descricao
 
-    if (r.error) {
-      alert(r.error.message);
-      return;
-    }
+          });
 
-    $("eNome").value = "";
-    $("eData").value = "";
-    $("eDesc").value = "";
+      if (result.error) {
 
-    await refreshAdmin();
-    await loadPublic();
-  };
+        alert(
+          result.error.message
+        );
 
-  /*
-    Adicionar dívida.
-  */
-  $("addDebt").onclick = async () => {
+        return;
+      }
 
-    const nome = $("dNome").value.trim();
+      $("pNome").value = "";
 
-    const valor = parseFloat($("dValor").value);
+      $("pPreco").value = "";
 
-    if (
-      !nome ||
-      !Number.isFinite(valor)
-    ) {
-      alert("Preencha nome e valor.");
-      return;
-    }
+      $("pDesc").value = "";
 
-    const r = await sb
-      .from("dividas")
-      .insert({
-        nome,
-        valor,
-        pago: false
-      });
+      await refreshAdmin();
 
-    if (r.error) {
-      alert(r.error.message);
-      return;
-    }
+      await loadPublic();
 
-    $("dNome").value = "";
-    $("dValor").value = "";
+    };
 
-    await refreshAdmin();
-  };
+
+  /* ADICIONAR EVENTO */
+
+  $("addEvent").onclick =
+    async () => {
+
+      const nome =
+        $("eNome").value.trim();
+
+      const data_hora =
+        $("eData").value.trim();
+
+      const descricao =
+        $("eDesc").value.trim();
+
+      if (!nome) {
+
+        alert(
+          "Digite o nome do evento."
+        );
+
+        return;
+      }
+
+      const result =
+        await sb
+          .from("eventos")
+          .insert({
+
+            nome:
+              nome,
+
+            data_hora:
+              data_hora,
+
+            descricao:
+              descricao
+
+          });
+
+      if (result.error) {
+
+        alert(
+          result.error.message
+        );
+
+        return;
+      }
+
+      $("eNome").value = "";
+
+      $("eData").value = "";
+
+      $("eDesc").value = "";
+
+      await refreshAdmin();
+
+      await loadPublic();
+
+    };
+
+
+  /* ADICIONAR DÍVIDA */
+
+  $("addDebt").onclick =
+    async () => {
+
+      const nome =
+        $("dNome").value.trim();
+
+      const valor =
+        parseFloat(
+          $("dValor").value
+        );
+
+      if (
+        !nome ||
+        !Number.isFinite(valor)
+      ) {
+
+        alert(
+          "Preencha nome e valor."
+        );
+
+        return;
+      }
+
+      const result =
+        await sb
+          .from("dividas")
+          .insert({
+
+            nome:
+              nome,
+
+            valor:
+              valor,
+
+            pago:
+              false
+
+          });
+
+      if (result.error) {
+
+        alert(
+          result.error.message
+        );
+
+        return;
+      }
+
+      $("dNome").value = "";
+
+      $("dValor").value = "";
+
+      await refreshAdmin();
+
+    };
+
 
   await refreshAdmin();
+
 }
 
-/*
-  Atualiza o painel administrativo.
-*/
+
+/* =========================
+   ATUALIZAR PAINEL
+========================= */
+
 async function refreshAdmin() {
 
-  const session = await getOwnerSession();
+  const owner =
+    await getOwner();
 
-  if (!session) return;
+  if (!owner) return;
 
-  const [p, e, d] = await Promise.all([
 
-    sb
+  const promo =
+    await sb
       .from("promocoes")
       .select("*")
       .order(
         "created_at",
-        { ascending: false }
-      ),
+        {
+          ascending: false
+        }
+      );
 
-    sb
+
+  const eventos =
+    await sb
       .from("eventos")
       .select("*")
       .order(
         "created_at",
-        { ascending: false }
-      ),
+        {
+          ascending: false
+        }
+      );
 
-    sb
+
+  const dividas =
+    await sb
       .from("dividas")
       .select("*")
       .order(
         "created_at",
-        { ascending: false }
-      )
+        {
+          ascending: false
+        }
+      );
 
-  ]);
 
-  /*
-    Promoções.
-  */
-  $("pList").innerHTML =
-    (p.data || [])
-      .map(
-        x => `
+  /* PROMOÇÕES */
+
+  const promoList =
+    $("pList");
+
+  if (promoList) {
+
+    promoList.innerHTML =
+      (promo.data || [])
+        .map(item => `
+
           <div class="admin-item">
 
             <span>
 
               <b>
-                ${escapeHtml(x.nome)}
+                ${escapeHtml(item.nome)}
               </b>
 
               ${
-                x.preco != null
-                  ? money(x.preco)
+                item.preco != null
+                  ? money(item.preco)
                   : ""
               }
 
@@ -654,36 +857,44 @@ async function refreshAdmin() {
               class="danger"
               onclick="deleteRow(
                 'promocoes',
-                '${x.id}'
+                '${item.id}'
               )"
             >
               Excluir
             </button>
 
           </div>
-        `
-      )
-      .join("") ||
-    "<span class='muted'>Nenhuma promoção.</span>";
 
-  /*
-    Eventos.
-  */
-  $("eList").innerHTML =
-    (e.data || [])
-      .map(
-        x => `
+        `)
+        .join("") ||
+
+      "<span class='muted'>Nenhuma promoção.</span>";
+
+  }
+
+
+  /* EVENTOS */
+
+  const eventList =
+    $("eList");
+
+  if (eventList) {
+
+    eventList.innerHTML =
+      (eventos.data || [])
+        .map(item => `
+
           <div class="admin-item">
 
             <span>
 
               <b>
-                ${escapeHtml(x.nome)}
+                ${escapeHtml(item.nome)}
               </b>
 
               —
               ${escapeHtml(
-                x.data_hora || ""
+                item.data_hora || ""
               )}
 
             </span>
@@ -692,40 +903,52 @@ async function refreshAdmin() {
               class="danger"
               onclick="deleteRow(
                 'eventos',
-                '${x.id}'
+                '${item.id}'
               )"
             >
               Excluir
             </button>
 
           </div>
-        `
-      )
-      .join("") ||
-    "<span class='muted'>Nenhum evento.</span>";
 
-  /*
-    Dívidas.
-  */
-  $("dList").innerHTML =
-    (d.data || [])
-      .map(
-        x => `
+        `)
+        .join("") ||
+
+      "<span class='muted'>Nenhum evento.</span>";
+
+  }
+
+
+  /* DÍVIDAS */
+
+  const debtList =
+    $("dList");
+
+  if (debtList) {
+
+    debtList.innerHTML =
+      (dividas.data || [])
+        .map(item => `
+
           <div class="admin-item debt">
 
             <span
-              class="${x.pago ? "paid" : ""}"
+              class="${
+                item.pago
+                  ? "paid"
+                  : ""
+              }"
             >
 
               <b>
-                ${escapeHtml(x.nome)}
+                ${escapeHtml(item.nome)}
               </b>
 
               —
-              ${money(x.valor)}
+              ${money(item.valor)}
 
               ${
-                x.pago
+                item.pago
                   ? "(pago)"
                   : ""
               }
@@ -737,12 +960,12 @@ async function refreshAdmin() {
               <button
                 class="dark-btn"
                 onclick="toggleDebt(
-                  '${x.id}',
-                  ${!x.pago}
+                  '${item.id}',
+                  ${!item.pago}
                 )"
               >
                 ${
-                  x.pago
+                  item.pago
                     ? "Desmarcar"
                     : "Marcar pago"
                 }
@@ -752,7 +975,7 @@ async function refreshAdmin() {
                 class="danger"
                 onclick="deleteRow(
                   'dividas',
-                  '${x.id}'
+                  '${item.id}'
                 )"
               >
                 Excluir
@@ -761,97 +984,129 @@ async function refreshAdmin() {
             </span>
 
           </div>
-        `
-      )
-      .join("") ||
-    "<span class='muted'>Nenhuma dívida cadastrada.</span>";
+
+        `)
+        .join("") ||
+
+      "<span class='muted'>Nenhuma dívida cadastrada.</span>";
+
+  }
+
 }
 
-/*
-  Excluir item.
-*/
-window.deleteRow = async (
-  table,
-  id
-) => {
 
-  const session = await getOwnerSession();
+/* =========================
+   EXCLUIR
+========================= */
 
-  if (!session) {
+window.deleteRow =
+  async function (
+    table,
+    id
+  ) {
 
-    alert("Acesso negado.");
+    const owner =
+      await getOwner();
 
-    return;
-  }
+    if (!owner) {
 
-  if (!confirm("Excluir este item?")) {
-    return;
-  }
+      alert(
+        "Acesso negado."
+      );
 
-  const r = await sb
-    .from(table)
-    .delete()
-    .eq("id", id);
+      return;
+    }
 
-  if (r.error) {
+    if (
+      !confirm(
+        "Excluir este item?"
+      )
+    ) {
+      return;
+    }
 
-    alert(r.error.message);
+    const result =
+      await sb
+        .from(table)
+        .delete()
+        .eq(
+          "id",
+          id
+        );
 
-    return;
-  }
+    if (result.error) {
 
-  await refreshAdmin();
-  await loadPublic();
-};
+      alert(
+        result.error.message
+      );
 
-/*
-  Marcar/desmarcar dívida como paga.
-*/
-window.toggleDebt = async (
-  id,
-  pago
-) => {
+      return;
+    }
 
-  const session = await getOwnerSession();
+    await refreshAdmin();
 
-  if (!session) {
+    await loadPublic();
 
-    alert("Acesso negado.");
+  };
 
-    return;
-  }
 
-  const r = await sb
-    .from("dividas")
-    .update({ pago })
-    .eq("id", id);
+/* =========================
+   MARCAR DÍVIDA
+========================= */
 
-  if (r.error) {
+window.toggleDebt =
+  async function (
+    id,
+    pago
+  ) {
 
-    alert(r.error.message);
+    const owner =
+      await getOwner();
 
-    return;
-  }
+    if (!owner) {
 
-  await refreshAdmin();
-};
+      alert(
+        "Acesso negado."
+      );
 
-/*
-  Detecta mudanças de autenticação.
-*/
-sb?.auth.onAuthStateChange(
-  (event, session) => {
+      return;
+    }
 
-    console.log(
-      "Supabase Auth:",
-      event,
-      session?.user?.email || "sem sessão"
-    );
+    const result =
+      await sb
+        .from("dividas")
+        .update({
+          pago: pago
+        })
+        .eq(
+          "id",
+          id
+        );
 
-  }
+    if (result.error) {
+
+      alert(
+        result.error.message
+      );
+
+      return;
+    }
+
+    await refreshAdmin();
+
+  };
+
+
+/* =========================
+   INICIALIZAÇÃO
+========================= */
+
+loadPublic();
+
+console.log(
+  "Central Beer carregado."
 );
 
-/*
-  Carrega o conteúdo público.
-*/
-loadPublic();
+console.log(
+  "Login: e-mail + senha."
+);
